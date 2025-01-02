@@ -1,13 +1,13 @@
-[![codecov](https://codecov.io/gh/<username>/<repository>/graph/badge.svg?token=<token>)](https://codecov.io/gh/<username>/<repository>)
-[![Hex.pm](https://img.shields.io/hexpm/v/<app_name>.svg)](https://hex.pm/packages/<app_name>)
-[![License](https://img.shields.io/github/license/<username>/<repository>.svg)](https://github.com/<username>/<repository>/blob/main/LICENSE)
-[![Documentation](https://img.shields.io/badge/docs-hexdocs-blue.svg)](https://hexdocs.pm/<app_name>)
-[![Build Status](https://github.com/<username>/<repository>/actions/workflows/elixir.yml/badge.svg)](https://github.com/<username>/<repository>/actions)
+[![codecov](https://codecov.io/gh/mpolit/amqp_channel_pool/graph/badge.svg?token=<token>)](https://codecov.io/gh/mpolit/amqp_channel_pool)
+[![Hex.pm](https://img.shields.io/hexpm/v/amqp_channel_pool.svg)](https://hex.pm/packages/amqp_channel_pool)
+[![License](https://img.shields.io/github/license/mpolit/amqp_channel_pool.svg)](https://github.com/mpolit/amqp_channel_pool/blob/main/LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-hexdocs-blue.svg)](https://hexdocs.pm/amqp_channel_pool)
+[![Build Status](https://github.com/mpolit/amqp_channel_pool/actions/workflows/elixir.yml/badge.svg)](https://github.com/mpolit/amqp_channel_pool/actions)
 [![Elixir Version](https://img.shields.io/badge/elixir-~%3E%201.16-purple.svg)](https://elixir-lang.org/)
 
-# <Project Name>
+# AMQPChannelPool
 
-<Brief description of the project, e.g., "An Elixir library for XYZ functionality, designed with simplicity and extensibility in mind.">
+A lightweight Elixir library for managing a pool of AMQP channels using NimblePool. It simplifies connection handling and channel reuse, providing an easy-to-use API for publishing messages and interacting with RabbitMQ efficiently.
 
 ## Table of Contents
 
@@ -22,19 +22,19 @@
 
 ## Features
 
-- **Feature 1**: Brief description of the first feature.
-- **Feature 2**: Another key feature.
-- **Built-in Tools**: Includes formatters, linters, and CI/CD workflows for a smooth development experience.
-- **Ready for Hex**: Pre-configured with metadata and workflows for publishing to Hex.pm.
+- **Connection Pooling**: Efficiently manages AMQP connections and channels using NimblePool.
+- **Simple API**: Checkout and reuse channels with ease.
+- **Customizable**: Configure connection options and pool size based on your application's needs.
+- **Lightweight**: Minimal dependencies and easy integration.
 
 ## Installation
 
-Add `<app_name>` to your list of dependencies in `mix.exs`:
+Add `amqp_channel_pool` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:<app_name>, "~> 0.1.0"}
+    {:amqp_channel_pool, "~> 0.1.0"}
   ]
 end
 ```
@@ -47,40 +47,38 @@ mix deps.get
 
 ## Configuration
 
-Customize the behavior of your application using the `config.exs` file.
-
-**Example Configuration**:
-
-```elixir
-import Config
-
-config :<app_name>,
-  key: "value",
-  other_key: "another_value"
-```
-
-For secrets like API keys, use environment variables:
-
-```elixir
-config :<app_name>,
-  api_key: System.get_env("API_KEY")
-```
+Customize the behavior of the pool using the options described in the [AMQP.Connection documentation](https://hexdocs.pm/amqp/AMQP.Connection.html#open/1).
 
 ## Usage
 
-**Basic Example**:
+### Starting the Pool
+
+Include `AMQPChannelPool` in your supervision tree:
 
 ```elixir
-<app_name>.some_function("argument")
+children = [
+  {AMQPChannelPool, [
+    opts: [
+      host: "localhost",
+      port: 5672,
+      username: "guest",
+      password: "guest"
+    ],
+    pool_size: 5
+  ]}
+]
+
+Supervisor.start_link(children, strategy: :one_for_one)
 ```
 
-**Detailed Example**:
+### Publishing Messages
+
+Check out a channel from the pool and publish a message:
 
 ```elixir
-case <app_name>.another_function(arg1, arg2) do
-  {:ok, result} -> IO.inspect(result)
-  {:error, reason} -> IO.puts("Error: #{reason}")
-end
+AMQPChannelPool.checkout!(fn channel ->
+  AMQP.Basic.publish(channel, "exchange_name", "routing_key", "message_payload")
+end)
 ```
 
 ## Running Tests
@@ -102,13 +100,7 @@ mix dialyzer
 
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository.
-2. Create a feature branch.
-3. Make your changes and add tests.
-4. Submit a pull request with a clear description of the changes.
-
+Contributions are welcome! Please see the [CONTRIBUTING](CONTRIBUTING.md) file for details.
 ## License
 
 This project is licensed under the Apache License, Version 2.0 - see the [LICENSE](LICENSE) file for details.

@@ -3,16 +3,17 @@ defmodule ElixirHexTemplate.MixProject do
 
   def project do
     [
-      app: :app_name,
+      app: :amqp_channel_pool,
       version: "0.1.0",
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      elixirc_paths: elixirc_paths(Mix.env()),
-      description: "Package description goes here",
+      #      elixirc_paths: elixirc_paths(Mix.env()),
+      description:
+        "A lightweight Elixir library for managing a pool of AMQP channels using NimblePool.",
       package: [
         licenses: ["Apache-2.0"],
-        links: %{"GitHub" => "github link goes here"}
+        links: %{"GitHub" => "https://github.com/mpol1t/amqp_channel_pool"}
       ],
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -35,6 +36,8 @@ defmodule ElixirHexTemplate.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:amqp, "~> 3.3.2"},
+      {:nimble_pool, "~> 1.1"},
       {:stream_data, "~> 1.1.1", only: :test},
       {:ex_doc, "~> 0.34.2", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
