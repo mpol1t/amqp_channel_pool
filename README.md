@@ -1,4 +1,4 @@
-[![codecov](https://codecov.io/gh/mpolit/amqp_channel_pool/graph/badge.svg?token=<token>)](https://codecov.io/gh/mpolit/amqp_channel_pool)
+[![codecov](https://codecov.io/gh/mpol1t/amqp_channel_pool/graph/badge.svg?token=SguSOIUQFy)](https://codecov.io/gh/mpol1t/amqp_channel_pool)
 [![Hex.pm](https://img.shields.io/hexpm/v/amqp_channel_pool.svg)](https://hex.pm/packages/amqp_channel_pool)
 [![License](https://img.shields.io/github/license/mpolit/amqp_channel_pool.svg)](https://github.com/mpolit/amqp_channel_pool/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-hexdocs-blue.svg)](https://hexdocs.pm/amqp_channel_pool)
