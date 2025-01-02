@@ -6,30 +6,12 @@ defmodule AMQPChannelPool.Worker do
 
   @impl true
   @doc false
-  @doc """
-  Initializes the pool with the given options.
-
-  ## Arguments
-
-  - `opts` - A keyword list containing the configuration options for the pool.
-  """
   def init_pool(opts) do
     {:ok, opts}
   end
 
   @impl true
   @doc false
-  @doc """
-  Initializes a worker with a new AMQP connection and channel.
-
-  ## Arguments
-
-  - `pool_state` - A list containing the pool's state, including the AMQP connection options.
-
-  ## Returns
-
-  A tuple containing the worker's initial state and the updated pool state.
-  """
   def init_worker([opts: connection_opts] = pool_state) do
     Logger.debug("AMQPChannelPool.Worker starting...")
 
@@ -53,19 +35,6 @@ defmodule AMQPChannelPool.Worker do
 
   @impl true
   @doc false
-  @doc """
-  Terminates the worker by closing the AMQP connection and channel.
-
-  ## Arguments
-
-  - `_reason` - The reason for termination (unused).
-  - `worker_state` - A map containing the `channel` and `conn` to be terminated.
-  - `pool_state` - The current state of the pool.
-
-  ## Returns
-
-  A tuple containing the updated pool state.
-  """
   def terminate_worker(_reason, %{channel: channel, conn: conn}, pool_state) do
     Logger.debug("AMQPChannelPool.Worker terminating...")
 
