@@ -1,6 +1,6 @@
-# Contributing to <Project Name>
+# Contributing to AMQPChannelPool
 
-Thank you for your interest in contributing to `<Project Name>`! We welcome contributions of all kinds, including bug fixes, new features, and improvements to documentation.
+Thank you for your interest in contributing to `amqp_channel_pool`! We welcome contributions of all kinds, including bug fixes, new features, and improvements to documentation.
 
 ## Getting Started
 
@@ -10,8 +10,8 @@ Thank you for your interest in contributing to `<Project Name>`! We welcome cont
 2. **Clone the Repository**  
    Clone your fork locally:
    ```bash
-   git clone https://github.com/<your-username>/<repository-name>.git
-   cd <repository-name>
+   git clone https://github.com/mpolit/amqp_channel_pool.git
+   cd amqp_channel_pool
    ```
 
 3. **Set Up the Environment**  
@@ -45,7 +45,7 @@ If you encounter a bug or have a feature request, please open an issue on GitHub
    ```bash
    mix test
    mix format
-   mix credo
+   mix credo --strict
    ```
 
 4. Commit your changes:

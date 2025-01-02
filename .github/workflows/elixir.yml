@@ -14,8 +14,7 @@ permissions:
 jobs:
   build:
     name: Build, Test, and Dialyzer
-    runs-on: ubuntu-latest
-    if: github.repository != 'mpol1t/elixir-hex-template'
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
