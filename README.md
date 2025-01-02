@@ -1,8 +1,8 @@
 [![codecov](https://codecov.io/gh/mpol1t/amqp_channel_pool/graph/badge.svg?token=SguSOIUQFy)](https://codecov.io/gh/mpol1t/amqp_channel_pool)
 [![Hex.pm](https://img.shields.io/hexpm/v/amqp_channel_pool.svg)](https://hex.pm/packages/amqp_channel_pool)
-[![License](https://img.shields.io/github/license/mpolit/amqp_channel_pool.svg)](https://github.com/mpolit/amqp_channel_pool/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/mpol1t/amqp_channel_pool.svg)](https://github.com/mpol1t/amqp_channel_pool/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-hexdocs-blue.svg)](https://hexdocs.pm/amqp_channel_pool)
-[![Build Status](https://github.com/mpolit/amqp_channel_pool/actions/workflows/elixir.yml/badge.svg)](https://github.com/mpolit/amqp_channel_pool/actions)
+[![Build Status](https://github.com/mpol1t/amqp_channel_pool/actions/workflows/elixir.yml/badge.svg)](https://github.com/mpol1t/amqp_channel_pool/actions)
 [![Elixir Version](https://img.shields.io/badge/elixir-~%3E%201.16-purple.svg)](https://elixir-lang.org/)
 
 # AMQPChannelPool
