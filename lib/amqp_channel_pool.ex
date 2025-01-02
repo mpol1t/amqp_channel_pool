@@ -82,7 +82,7 @@ defmodule AMQPChannelPool do
   ## Examples
 
       children = [
-        {AMQPChannelPool, opts: %{host: "localhost"}, pool_size: 5}
+        {AMQPChannelPool, opts: [host: "localhost"], pool_size: 5}
       ]
       Supervisor.start_link(children, strategy: :one_for_one)
   """

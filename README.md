@@ -34,7 +34,7 @@ Add `amqp_channel_pool` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:amqp_channel_pool, "~> 0.1.0"}
+    {:amqp_channel_pool, "~> 0.1.1"}
   ]
 end
 ```
