@@ -42,7 +42,7 @@ defmodule ElixirHexTemplate.MixProject do
       {:ex_doc, "~> 0.36.1", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:styler, "~> 1.2.1", only: [:dev, :test], runtime: false},
+      {:styler, "~> 1.3.1", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18.3", only: [:test], runtime: false}
     ]
   end
