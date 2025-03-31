@@ -38,7 +38,7 @@ defmodule ElixirHexTemplate.MixProject do
     [
       {:amqp, "~> 4.0.0"},
       {:nimble_pool, "~> 1.1"},
-      {:stream_data, "~> 1.1.1", only: :test},
+      {:stream_data, "~> 1.2.0", only: :test},
       {:ex_doc, "~> 0.37.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
