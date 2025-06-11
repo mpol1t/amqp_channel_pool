@@ -36,7 +36,7 @@ defmodule ElixirHexTemplate.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:amqp, "~> 4.0.0"},
+      {:amqp, "~> 4.1.0"},
       {:nimble_pool, "~> 1.1"},
       {:stream_data, "~> 1.2.0", only: :test},
       {:ex_doc, "~> 0.38.1", only: :dev, runtime: false},
