@@ -20,6 +20,6 @@
   "ranch": {:hex, :ranch, "2.1.0", "2261f9ed9574dcfcc444106b9f6da155e6e540b2f82ba3d42b339b93673b72a3", [:make, :rebar3], [], "hexpm", "244ee3fa2a6175270d8e1fc59024fd9dbc76294a321057de8f803b1479e76916"},
   "recon": {:hex, :recon, "2.5.6", "9052588e83bfedfd9b72e1034532aee2a5369d9d9343b61aeb7fbce761010741", [:mix, :rebar3], [], "hexpm", "96c6799792d735cc0f0fd0f86267e9d351e63339cbe03df9d162010cefc26bb0"},
   "stream_data": {:hex, :stream_data, "1.2.0", "58dd3f9e88afe27dc38bef26fce0c84a9e7a96772b2925c7b32cd2435697a52b", [:mix], [], "hexpm", "eb5c546ee3466920314643edf68943a5b14b32d1da9fe01698dc92b73f89a9ed"},
-  "styler": {:hex, :styler, "1.7.0", "3336e7547b5edaa3c5f7c861d8a45e1a450f9ed4db7d8f27ad54c12ab791bb66", [:mix], [], "hexpm", "ede783606fcd9bf06edfddbbedc36cc3a3af7b042cf0df8503aec0f82e016437"},
+  "styler": {:hex, :styler, "1.8.0", "87d78524b451f376581aa172d537f0c9aef93f4296e7ed307133f8a9bb6adc26", [:mix], [], "hexpm", "acbe10f82f24918a17f50c610afd87979e043126667ec7e6db2376e366a80dc2"},
   "thoas": {:hex, :thoas, "1.2.1", "19a25f31177a17e74004d4840f66d791d4298c5738790fa2cc73731eb911f195", [:rebar3], [], "hexpm", "e38697edffd6e91bd12cea41b155115282630075c2a727e7a6b2947f5408b86a"},
 }
