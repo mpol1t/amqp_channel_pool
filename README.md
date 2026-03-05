@@ -9,6 +9,17 @@
 
 A lightweight Elixir library for managing named AMQP channel pools with NimblePool.
 
+## Documentation
+
+HexDocs includes the API reference and focused guides:
+
+- [Getting Started](docs/guides/getting_started.md)
+- [Configuration](docs/guides/configuration.md)
+- [Checkout and Failure Semantics](docs/guides/checkout_and_failure_semantics.md)
+- [Recovery and Worker Lifecycle](docs/guides/recovery_and_worker_lifecycle.md)
+- [Telemetry](docs/guides/telemetry.md)
+- [Integration Testing](docs/guides/integration_testing.md)
+
 ## Installation
 
 Add `amqp_channel_pool` to your list of dependencies in `mix.exs`:
@@ -107,12 +118,16 @@ end
 `channel_setup` can enable confirm mode and topology, but confirm mode alone is not
 sufficient to guarantee end-to-end reliable delivery.
 
+For complete setup constraints, see [Configuration](docs/guides/configuration.md).
+
 ### Stale worker recovery
 
 Workers are monitored for connection and channel process exits. If a worker is stale at checkout
 time, the pool performs one immediate recovery attempt by reopening the connection and channel,
 reapplying `:channel_setup`, and reinstalling monitors. If recovery fails, checkout returns a
 pool-layer error and the failed worker is discarded for replacement.
+
+For lifecycle details, see [Recovery and Worker Lifecycle](docs/guides/recovery_and_worker_lifecycle.md).
 
 ### Borrower failure semantics
 
@@ -127,6 +142,8 @@ The borrowed worker is discarded and replaced before reuse to avoid channel cont
 
 Borrowers are responsible for channel hygiene when callbacks succeed. If callback code may
 leave channel state uncertain, fail the callback so the worker is discarded.
+
+For full failure behavior, see [Checkout and Failure Semantics](docs/guides/checkout_and_failure_semantics.md).
 
 ### Telemetry
 
@@ -162,6 +179,8 @@ Failure semantics in telemetry:
 - checkout callback failures (`raise`/`throw`/`exit`) emit checkout `:exception` with `result: :callback_exception`
 - pool-layer checkout failures that return `{:error, reason}` emit checkout `:stop` with `result: :pool_error`
 - worker recovery failures emit worker recover `:exception`
+
+For event shapes and usage examples, see [Telemetry](docs/guides/telemetry.md).
 
 ### Pool Boundary
 

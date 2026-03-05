@@ -1,20 +1,24 @@
 defmodule ElixirHexTemplate.MixProject do
   use Mix.Project
+  @version "0.2.0"
 
   def project do
     [
       app: :amqp_channel_pool,
-      version: "0.2.0",
+      version: @version,
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      #      elixirc_paths: elixirc_paths(Mix.env()),
       description:
         "A lightweight Elixir library for managing a pool of AMQP channels using NimblePool.",
       package: [
         licenses: ["Apache-2.0"],
-        links: %{"GitHub" => "https://github.com/mpol1t/amqp_channel_pool"}
+        links: %{
+          "GitHub" => "https://github.com/mpol1t/amqp_channel_pool",
+          "Changelog" => "https://github.com/mpol1t/amqp_channel_pool/blob/main/CHANGELOG.md"
+        }
       ],
+      docs: docs(),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
         coveralls: :test,
@@ -45,6 +49,40 @@ defmodule ElixirHexTemplate.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:styler, "~> 1.11.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18.3", only: [:test], runtime: false}
+    ]
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      source_ref: "v#{@version}",
+      source_url: "https://github.com/mpol1t/amqp_channel_pool",
+      canonical: "https://hexdocs.pm/amqp_channel_pool",
+      extras: [
+        "README.md",
+        "CHANGELOG.md",
+        "CONTRIBUTING.md",
+        "LICENSE",
+        "docs/guides/getting_started.md",
+        "docs/guides/configuration.md",
+        "docs/guides/checkout_and_failure_semantics.md",
+        "docs/guides/recovery_and_worker_lifecycle.md",
+        "docs/guides/telemetry.md",
+        "docs/guides/integration_testing.md"
+      ],
+      groups_for_extras: [
+        Project: ["README.md", "CHANGELOG.md", "CONTRIBUTING.md", "LICENSE"],
+        Guides: ~r/docs\/guides\/.*/
+      ],
+      groups_for_modules: [
+        PublicAPI: [AMQPChannelPool],
+        Internals: [
+          AMQPChannelPool.AMQPClient,
+          AMQPChannelPool.Telemetry,
+          AMQPChannelPool.Worker
+        ]
+      ],
+      skip_undefined_reference_warnings_on: []
     ]
   end
 end
