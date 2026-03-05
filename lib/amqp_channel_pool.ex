@@ -323,26 +323,24 @@ defmodule AMQPChannelPool do
   defp validate_known_start_opts(opts) do
     unknown_keys = Keyword.keys(opts) -- @valid_start_keys
 
-    cond do
-      unknown_keys != [] ->
-        {:error,
-         ArgumentError.exception("unknown start option(s): #{inspect(Enum.sort(unknown_keys))}")}
-
-      true ->
-        with {:ok, name} <- validate_pool_name(Keyword.get(opts, :name)),
-             {:ok, connection} <- validate_connection(Keyword.get(opts, :connection, :missing)),
-             {:ok, channel_setup} <- validate_channel_setup(Keyword.get(opts, :channel_setup)),
-             {:ok, pool_size} <-
-               validate_pool_size(Keyword.get(opts, :pool_size, @default_pool_size)) do
-          {:ok,
-           %{
-             id: Keyword.get(opts, :id),
-             name: name,
-             connection: connection,
-             channel_setup: channel_setup,
-             pool_size: pool_size
-           }}
-        end
+    if unknown_keys != [] do
+      {:error,
+       ArgumentError.exception("unknown start option(s): #{inspect(Enum.sort(unknown_keys))}")}
+    else
+      with {:ok, name} <- validate_pool_name(Keyword.get(opts, :name)),
+           {:ok, connection} <- validate_connection(Keyword.get(opts, :connection, :missing)),
+           {:ok, channel_setup} <- validate_channel_setup(Keyword.get(opts, :channel_setup)),
+           {:ok, pool_size} <-
+             validate_pool_size(Keyword.get(opts, :pool_size, @default_pool_size)) do
+        {:ok,
+         %{
+           id: Keyword.get(opts, :id),
+           name: name,
+           connection: connection,
+           channel_setup: channel_setup,
+           pool_size: pool_size
+         }}
+      end
     end
   end
 
@@ -354,30 +352,24 @@ defmodule AMQPChannelPool do
   end
 
   defp validate_checkout_opts(opts) do
-    cond do
-      not Keyword.keyword?(opts) ->
-        {:error,
-         ArgumentError.exception(
-           "expected checkout options to be a keyword list, got: #{inspect(opts)}"
-         )}
-
-      true ->
-        validate_known_checkout_opts(opts)
+    if Keyword.keyword?(opts) do
+      validate_known_checkout_opts(opts)
+    else
+      {:error,
+       ArgumentError.exception(
+         "expected checkout options to be a keyword list, got: #{inspect(opts)}"
+       )}
     end
   end
 
   defp validate_known_checkout_opts(opts) do
     unknown_keys = Keyword.keys(opts) -- @valid_checkout_keys
 
-    cond do
-      unknown_keys != [] ->
-        {:error,
-         ArgumentError.exception(
-           "unknown checkout option(s): #{inspect(Enum.sort(unknown_keys))}"
-         )}
-
-      true ->
-        validate_timeout(Keyword.get(opts, :timeout, @default_checkout_timeout))
+    if unknown_keys != [] do
+      {:error,
+       ArgumentError.exception("unknown checkout option(s): #{inspect(Enum.sort(unknown_keys))}")}
+    else
+      validate_timeout(Keyword.get(opts, :timeout, @default_checkout_timeout))
     end
   end
 

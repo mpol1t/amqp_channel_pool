@@ -25,6 +25,8 @@ defmodule AMQPChannelPool.Worker do
   end
 
   defmodule State do
+    @moduledoc false
+
     @enforce_keys [:lifecycle, :started_at]
     defstruct lifecycle: :starting,
               connection: nil,
@@ -402,6 +404,9 @@ defmodule AMQPChannelPool.Worker do
          | connection_monitor_ref: Process.monitor(connection_pid),
            channel_monitor_ref: Process.monitor(channel_pid)
        }}
+    else
+      {:error, stage, reason} ->
+        {:error, stage, reason, state}
     end
   end
 

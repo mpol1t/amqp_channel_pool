@@ -11,25 +11,12 @@ A lightweight Elixir library for managing named AMQP channel pools with NimblePo
 
 ## Installation
 
-The redesign documented in this README targets the upcoming `0.2.0` release and is
-currently tracked in [CHANGELOG Unreleased](CHANGELOG.md).
-
-If you want the redesign now (before a `0.2.0` Hex release), use the git dependency:
+Add `amqp_channel_pool` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:amqp_channel_pool, github: "mpol1t/amqp_channel_pool", branch: "main"}
-  ]
-end
-```
-
-If you need the legacy singleton API from `0.1.x`, use:
-
-```elixir
-def deps do
-  [
-    {:amqp_channel_pool, "~> 0.1.1"}
+    {:amqp_channel_pool, "~> 0.2.0"}
   ]
 end
 ```
@@ -39,13 +26,6 @@ Then fetch dependencies:
 ```bash
 mix deps.get
 ```
-
-## Migration Notes
-
-This redesign introduces intentional breaking changes from 0.1.x singleton usage
-to explicit named pools. See:
-
-- [Migration guide (0.1.x to 0.2.0)](docs/migration_0_1_to_0_2.md)
 
 ## Configuration
 
@@ -61,7 +41,7 @@ Optional startup options:
 - `:id` to override the default child specification id
 
 The `:connection` value is passed to `AMQP.Connection.open/1`.
-The legacy `:opts` key is not supported.
+The `:opts` key is not supported.
 
 ## Usage
 
