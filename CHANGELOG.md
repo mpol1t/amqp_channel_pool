@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [0.2.1] - 2026-03-05
 
 ### Added
-- Production-grade HexDocs structure with curated guides for setup, configuration, checkout/failure semantics, recovery lifecycle, telemetry, and integration testing.
+- HexDocs structure with curated guides for setup, configuration, checkout/failure semantics, recovery lifecycle, telemetry, and integration testing.
 
 ### Changed
 - ExDoc configuration now includes stable source references, canonical HexDocs URL, grouped module/guide navigation, and curated project extras.
