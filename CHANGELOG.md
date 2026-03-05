@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-05
+
 ### Added
 - Explicit worker lifecycle model (`:starting | :ready | :stale | :recovering | :closing`) with deterministic startup and cleanup behavior.
 - Stale detection using monitor `DOWN` handling plus checkout-time validation.

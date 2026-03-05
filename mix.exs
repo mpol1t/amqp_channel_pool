@@ -4,7 +4,7 @@ defmodule ElixirHexTemplate.MixProject do
   def project do
     [
       app: :amqp_channel_pool,
-      version: "0.1.1",
+      version: "0.2.0",
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
