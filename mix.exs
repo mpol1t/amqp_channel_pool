@@ -4,7 +4,7 @@ defmodule ElixirHexTemplate.MixProject do
   def project do
     [
       app: :amqp_channel_pool,
-      version: "0.1.1",
+      version: "0.2.0",
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -29,7 +29,7 @@ defmodule ElixirHexTemplate.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger, :telemetry]
     ]
   end
 
@@ -38,6 +38,7 @@ defmodule ElixirHexTemplate.MixProject do
     [
       {:amqp, "~> 4.1.0"},
       {:nimble_pool, "~> 1.1"},
+      {:telemetry, "~> 1.2"},
       {:stream_data, "~> 1.2.0", only: :test},
       {:ex_doc, "~> 0.40.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
