@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build, Test, and Dialyzer
+  unit_and_static:
+    name: Unit, Lint, and Dialyzer
     runs-on: ubuntu-22.04
 
     steps:
@@ -36,6 +36,7 @@ jobs:
         run: MIX_ENV=test mix deps.get
 
       - name: Cache Dialyzer PLT
+        id: plt-cache
         uses: actions/cache@v3
         with:
           path: _build
@@ -44,7 +45,7 @@ jobs:
 
       - name: Build PLT
         run: mix dialyzer --plt
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.plt-cache.outputs.cache-hit != 'true'
 
       - name: Run Dialyzer
         run: mix dialyzer
@@ -59,3 +60,44 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  integration:
+    name: Integration Tests (RabbitMQ)
+    runs-on: ubuntu-22.04
+
+    services:
+      rabbitmq:
+        image: rabbitmq:3.13-management
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics check_running"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@61e01a43a562a89bfc54c7f9a378ff67b03e4a21
+        with:
+          elixir-version: '1.16.3'
+          otp-version: '26.0'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - name: Install dependencies
+        run: MIX_ENV=test mix deps.get
+
+      - name: Run integration tests
+        env:
+          RUN_INTEGRATION: "true"
+          AMQP_TEST_HOST: "127.0.0.1"
+          AMQP_TEST_PORT: "5672"
+        run: MIX_ENV=test mix test --only integration
