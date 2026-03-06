@@ -13,27 +13,28 @@ permissions:
 
 jobs:
   unit_and_static:
-    name: Unit, Lint, and Dialyzer
+    name: Unit, Lint, Dialyzer, and Coverage
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Set up Elixir
         uses: erlef/setup-beam@3580539ceec3dc05b0ed51e9e10b08eb7a7c2bb4
         with:
-          elixir-version: '1.16.3'
-          otp-version: '26.0'
+          elixir-version: "1.16.3"
+          otp-version: "26.0"
 
       - name: Restore dependencies cache
         uses: actions/cache@v3
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-mix-
-
-      - name: Install dependencies
-        run: MIX_ENV=test mix deps.get
+          restore-keys: |
+            ${{ runner.os }}-mix-
 
       - name: Cache Dialyzer PLT
         id: plt-cache
@@ -41,11 +42,15 @@ jobs:
         with:
           path: _build
           key: ${{ runner.os }}-dialyzer-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-dialyzer
+          restore-keys: |
+            ${{ runner.os }}-dialyzer-
+
+      - name: Install dependencies
+        run: MIX_ENV=test mix deps.get
 
       - name: Build PLT
-        run: mix dialyzer --plt
         if: steps.plt-cache.outputs.cache-hit != 'true'
+        run: mix dialyzer --plt
 
       - name: Run Dialyzer
         run: mix dialyzer
@@ -53,13 +58,15 @@ jobs:
       - name: Run Credo Linter
         run: mix credo
 
-      - name: Run tests
+      - name: Run tests with coverage
         run: MIX_ENV=test mix coveralls.json
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   integration:
     name: Integration Tests (RabbitMQ)
@@ -77,20 +84,24 @@ jobs:
           --health-retries 10
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Set up Elixir
         uses: erlef/setup-beam@3580539ceec3dc05b0ed51e9e10b08eb7a7c2bb4
         with:
-          elixir-version: '1.16.3'
-          otp-version: '26.0'
+          elixir-version: "1.16.3"
+          otp-version: "26.0"
 
       - name: Restore dependencies cache
         uses: actions/cache@v3
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-mix-
+          restore-keys: |
+            ${{ runner.os }}-mix-
 
       - name: Install dependencies
         run: MIX_ENV=test mix deps.get
