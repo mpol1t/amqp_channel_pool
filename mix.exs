@@ -43,7 +43,7 @@ defmodule ElixirHexTemplate.MixProject do
       {:amqp, "~> 4.1.0"},
       {:nimble_pool, "~> 1.1"},
       {:telemetry, "~> 1.2"},
-      {:stream_data, "~> 1.2.0", only: :test},
+      {:stream_data, "~> 1.3.0", only: :test},
       {:ex_doc, "~> 0.40.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
