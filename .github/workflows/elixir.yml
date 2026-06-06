@@ -62,6 +62,7 @@ jobs:
         run: MIX_ENV=test mix coveralls.json
 
       - name: Upload coverage reports to Codecov
+        if: github.actor != 'dependabot[bot]'
         uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
