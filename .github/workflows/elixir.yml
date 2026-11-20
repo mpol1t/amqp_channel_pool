@@ -11,10 +11,6 @@ on:
 permissions:
   contents: read
 
-env:
-  BEAM_ELIXIR_VERSION: "1.20.5"
-  BEAM_OTP_VERSION: "29.1.2"
-
 jobs:
   unit_and_static:
     name: Unit, Lint, Dialyzer, and Coverage
@@ -29,23 +25,23 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124
         with:
-          elixir-version: ${{ env.BEAM_ELIXIR_VERSION }}
-          otp-version: ${{ env.BEAM_OTP_VERSION }}
+          version-file: .github/.tool-versions
+          version-type: strict
 
       - name: Restore dependencies cache
         uses: actions/cache@v5
         with:
           path: deps
-          key: ${{ runner.os }}-mix-${{ env.BEAM_ELIXIR_VERSION }}-${{ env.BEAM_OTP_VERSION }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ hashFiles('.github/.tool-versions') }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-${{ env.BEAM_ELIXIR_VERSION }}-${{ env.BEAM_OTP_VERSION }}-
+            ${{ runner.os }}-mix-${{ hashFiles('.github/.tool-versions') }}-
 
       - name: Cache Dialyzer PLT
         id: plt-cache
         uses: actions/cache@v5
         with:
           path: _build
-          key: ${{ runner.os }}-dialyzer-${{ env.BEAM_ELIXIR_VERSION }}-${{ env.BEAM_OTP_VERSION }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-dialyzer-${{ hashFiles('.github/.tool-versions') }}-${{ hashFiles('**/mix.lock') }}
 
       - name: Install dependencies
         run: MIX_ENV=test mix deps.get
@@ -61,7 +57,10 @@ jobs:
         run: mix credo
 
       - name: Run tests with coverage
-        run: MIX_ENV=test mix coveralls.json
+        run: mix coveralls.json
+
+      - name: Verify JSON coverage report
+        run: test -s cover/excoveralls.json
 
       - name: Upload coverage reports to Codecov
         if: github.actor != 'dependabot[bot]'
@@ -114,16 +113,16 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124
         with:
-          elixir-version: ${{ env.BEAM_ELIXIR_VERSION }}
-          otp-version: ${{ env.BEAM_OTP_VERSION }}
+          version-file: .github/.tool-versions
+          version-type: strict
 
       - name: Restore dependencies cache
         uses: actions/cache@v5
         with:
           path: deps
-          key: ${{ runner.os }}-mix-${{ env.BEAM_ELIXIR_VERSION }}-${{ env.BEAM_OTP_VERSION }}-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ hashFiles('.github/.tool-versions') }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-${{ env.BEAM_ELIXIR_VERSION }}-${{ env.BEAM_OTP_VERSION }}-
+            ${{ runner.os }}-mix-${{ hashFiles('.github/.tool-versions') }}-
 
       - name: Install dependencies
         run: MIX_ENV=test mix deps.get
