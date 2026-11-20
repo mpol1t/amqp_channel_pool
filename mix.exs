@@ -27,6 +27,7 @@ defmodule ElixirHexTemplate.MixProject do
     [
       preferred_envs: [
         coveralls: :test,
+        "coveralls.json": :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test,
