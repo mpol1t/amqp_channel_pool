@@ -9,10 +9,16 @@ The pool name is always explicit.
 
 ## Pool-Layer Failures
 
-Pool-layer failures are returned as `{:error, reason}` from `checkout/3`, and raised by
-`checkout!/3`.
+Invalid options and worker recovery failures return `{:error, exception}` from
+`checkout/3`. The bang variant raises that exception. Both functions exit the
+caller if the named pool is missing or the wait for a channel times out.
+When worker recovery fails, the pool discards the failed worker and replaces it.
 
-Recovery/setup failures are surfaced as `%AMQPChannelPool.Worker.RecoveryError{}`.
+## Callback return values
+
+If a callback returns `{:error, reason}` normally, `checkout/3` returns
+`{:ok, {:error, reason}}`. The worker checks the channel back in and the channel
+remains eligible for reuse, subject to the usual liveness checks.
 
 ## Callback Failure Propagation
 
@@ -30,7 +36,7 @@ pool infrastructure failures.
 When a callback fails abnormally (`raise`, `exit`, `throw`), the worker is discarded and
 replaced before reuse.
 
-For successful callbacks, borrower code is responsible for keeping channel state valid.
+When a callback returns normally, borrower code is responsible for keeping channel state valid.
 If callback logic leaves channel state uncertain, fail the callback so the worker is
 discarded.
 

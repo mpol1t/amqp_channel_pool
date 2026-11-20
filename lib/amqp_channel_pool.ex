@@ -79,27 +79,9 @@ defmodule AMQPChannelPool do
 
   ## Examples
 
-      children = [
-        {AMQPChannelPool,
-         name: MyApp.PrimaryPool,
-         connection: [
-           host: "localhost",
-           port: 5672,
-           username: "guest",
-           password: "guest"
-         ],
-         pool_size: 5,
-         channel_setup: &MyApp.AMQPTopology.declare/1}
-      ]
-
-      {:ok, _pid} = Supervisor.start_link(children, strategy: :one_for_one)
-
-      {:ok, :ok} =
-        AMQPChannelPool.checkout(MyApp.PrimaryPool, fn channel ->
-          AMQP.Queue.declare(channel, "service.health", durable: true)
-        end, timeout: 5_000)
-
-      :ok = AMQPChannelPool.stop(MyApp.PrimaryPool)
+  [Getting Started](getting_started.html) walks through starting a supervised pool
+  and publishing a message. [Publishing Examples](publishing_examples.html)
+  covers concurrent publishers and broker confirmations.
   """
 
   @doc """
@@ -150,7 +132,8 @@ defmodule AMQPChannelPool do
   @doc """
   Checks out a channel from the named pool and returns `{:ok, result}` on success.
 
-  Returns `{:error, reason}` for pool-layer checkout failures.
+  Returns `{:error, reason}` for worker recovery failures. A missing pool or a
+  timeout waiting for a channel exits the caller.
   Invalid checkout options return `{:error, %ArgumentError{}}`.
   Callback `raise`/`exit`/`throw` are not converted to `{:error, reason}` and
   propagate with standard Elixir semantics.
@@ -164,7 +147,8 @@ defmodule AMQPChannelPool do
   @doc """
   Checks out a channel from the named pool and returns the callback result.
 
-  Raises for invalid checkout options and pool-layer checkout failures.
+  Raises for invalid checkout options and worker recovery failures. A missing pool
+  or a timeout waiting for a channel exits the caller.
   Callback `raise`/`exit`/`throw` propagate directly.
   """
   def checkout!(pool_name, fun, opts) when is_function(fun, 1) do

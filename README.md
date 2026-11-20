@@ -6,38 +6,29 @@
 
 # AMQPChannelPool
 
-A lightweight Elixir library for managing named AMQP channel pools with NimblePool.
+Use a named channel pool when several processes in your Elixir application publish to RabbitMQ. Each checkout borrows a channel for the duration of a callback, then returns it to the pool for reuse. Your application controls message routing, publisher confirms, and retries.
 
-## Documentation
+## Publish your first message
 
-HexDocs includes the API reference and focused guides:
+Follow [Getting Started](docs/guides/getting_started.md) to publish your first message with a supervised pool and local RabbitMQ.
 
-- [Getting Started](docs/guides/getting_started.md)
+## Where to go next
+
+| Level | Example | What it adds |
+| --- | --- | --- |
+| Application | [Enqueue a receipt](docs/guides/publishing_examples.md#enqueue-a-background-job) | Prepare channels on startup and give callers a function with explicit error results. |
+| Concurrent callers | [Publish a batch](docs/guides/publishing_examples.md#enqueue-from-concurrent-callers) | Share a bounded pool and associate each result with its order. |
+| Event routing | [Route order events](docs/guides/publishing_examples.md#route-order-events) | Use topic bindings to send different events to billing and audit queues. |
+| Operations | [Recover a closed channel](docs/guides/recovery_and_worker_lifecycle.md#try-recovery-locally) | Observe the next checkout recover and send another message. |
+
+## Reference
+
 - [Configuration](docs/guides/configuration.md)
 - [Checkout and Failure Semantics](docs/guides/checkout_and_failure_semantics.md)
 - [Recovery and Worker Lifecycle](docs/guides/recovery_and_worker_lifecycle.md)
 - [Telemetry](docs/guides/telemetry.md)
-- [Integration Testing](docs/guides/integration_testing.md)
 
-## Installation
-
-Add `amqp_channel_pool` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:amqp_channel_pool, "~> 0.2.1"}
-  ]
-end
-```
-
-Then fetch dependencies:
-
-```bash
-mix deps.get
-```
-
-### Tested runtimes
+## Tested runtimes
 
 These are the Elixir and Erlang/OTP runtimes for the application connecting to RabbitMQ. For a new application, the primary tested pair is **Elixir 1.20 / OTP 29**.
 
@@ -50,168 +41,6 @@ These are the Elixir and Erlang/OTP runtimes for the application connecting to R
 | 1.20 | 27, 28, 29 |
 
 For each combination, CI runs the unit and RabbitMQ integration suites with locked dependencies on one representative patch pair specified in the [CI workflow](.github/workflows/elixir.yml) and [primary runtime pins](.github/.tool-versions).
-
-## Configuration
-
-Pool startup requires:
-
-- `:name`
-- `:connection`
-
-Optional startup options:
-
-- `:pool_size` with a default of `10`
-- `:channel_setup` to configure a freshly opened channel before it enters service
-- `:id` to override the default child specification id
-
-The `:connection` value is passed to `AMQP.Connection.open/1`.
-The `:opts` key is not supported.
-
-## Usage
-
-### Starting named pools
-
-```elixir
-children = [
-  {AMQPChannelPool,
-   name: MyApp.PrimaryPool,
-   connection: [
-     host: "localhost",
-     port: 5672,
-     username: "guest",
-     password: "guest"
-   ],
-   pool_size: 5,
-   channel_setup: &declare_topology/1},
-  {AMQPChannelPool,
-   name: MyApp.SecondaryPool,
-   connection: [
-     host: "localhost",
-     port: 5672,
-     username: "guest",
-     password: "guest"
-   ]}
-]
-
-Supervisor.start_link(children, strategy: :one_for_one)
-```
-
-### Checking out a channel
-
-```elixir
-{:ok, :ok} =
-  AMQPChannelPool.checkout(MyApp.PrimaryPool, fn channel ->
-    AMQP.Queue.declare(channel, "service.health", durable: true)
-  end, timeout: 5_000)
-
-AMQPChannelPool.checkout!(MyApp.SecondaryPool, fn channel ->
-  AMQP.Queue.declare(channel, "service.audit", durable: true)
-end, timeout: 5_000)
-```
-
-### Stopping a named pool
-
-```elixir
-:ok = AMQPChannelPool.stop(MyApp.PrimaryPool)
-```
-
-### Channel setup callback
-
-```elixir
-defp declare_topology(channel) do
-  with {:ok, _} <- AMQP.Exchange.declare(channel, "service.events", :topic, durable: true),
-       {:ok, _} <- AMQP.Queue.declare(channel, "service.events.primary", durable: true) do
-    :ok
-  else
-    {:error, reason} -> {:error, reason}
-  end
-end
-```
-
-`channel_setup` can enable confirm mode and topology, but confirm mode alone is not
-sufficient to guarantee end-to-end reliable delivery.
-
-For complete setup constraints, see [Configuration](docs/guides/configuration.md).
-
-### Stale worker recovery
-
-Workers are monitored for connection and channel process exits. If a worker is stale at checkout
-time, the pool performs one immediate recovery attempt by reopening the connection and channel,
-reapplying `:channel_setup`, and reinstalling monitors. If recovery fails, checkout returns a
-pool-layer error and the failed worker is discarded for replacement.
-
-For lifecycle details, see [Recovery and Worker Lifecycle](docs/guides/recovery_and_worker_lifecycle.md).
-
-### Borrower failure semantics
-
-`checkout/3` and `checkout!/3` preserve normal Elixir callback failure behavior:
-
-- `raise` re-raises to the caller
-- `exit` exits the caller
-- `throw` throws to the caller
-
-These abnormal callback outcomes are not converted into pool-layer `{:error, reason}` tuples.
-The borrowed worker is discarded and replaced before reuse to avoid channel contamination.
-
-Borrowers are responsible for channel hygiene when callbacks succeed. If callback code may
-leave channel state uncertain, fail the callback so the worker is discarded.
-
-For full failure behavior, see [Checkout and Failure Semantics](docs/guides/checkout_and_failure_semantics.md).
-
-### Telemetry
-
-Event namespace:
-
-- `[:amqp_channel_pool, ...]`
-
-Event families:
-
-- `[:amqp_channel_pool, :checkout, :start | :stop | :exception]`
-- `[:amqp_channel_pool, :worker, :init, :start | :stop | :exception]`
-- `[:amqp_channel_pool, :worker, :recover, :start | :stop | :exception]`
-- `[:amqp_channel_pool, :worker, :discard]`
-- `[:amqp_channel_pool, :worker, :terminate]`
-
-Measurements:
-
-- start events include `system_time`
-- stop and exception events include `duration`
-
-Stable metadata keys:
-
-- `pool`
-- `worker_pid`
-- `worker_state`
-- `recovery_kind`
-- `reason`
-- `timeout`
-- `result`
-
-Failure semantics in telemetry:
-
-- checkout callback failures (`raise`/`throw`/`exit`) emit checkout `:exception` with `result: :callback_exception`
-- pool-layer checkout failures that return `{:error, reason}` emit checkout `:stop` with `result: :pool_error`
-- worker recovery failures emit worker recover `:exception`
-
-For event shapes and usage examples, see [Telemetry](docs/guides/telemetry.md).
-
-### Pool Boundary
-
-The pool library is intentionally generic infrastructure. It owns:
-
-- channel pool lifecycle and checkout behavior
-- stale detection, one-shot recovery, and worker replacement
-- pool-layer telemetry and failure reporting
-
-Publisher applications own:
-
-- message routing policy
-- serialization and headers
-- confirm waiting/ack handling
-- retry and idempotency strategy
-
-The pool does not provide publish convenience APIs and does not guarantee delivery
-semantics on behalf of the application.
 
 ## Running Tests
 

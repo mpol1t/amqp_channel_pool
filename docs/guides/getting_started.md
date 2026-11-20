@@ -1,69 +1,53 @@
 # Getting Started
 
-`amqp_channel_pool` provides named AMQP channel pools backed by `NimblePool`.
+Publish a message from an existing supervised Mix application. This example assumes RabbitMQ is listening on `localhost:5672` with the default virtual host `/` and local credentials `guest` / `guest`.
 
-## Installation
+## Install the package
 
-Add the dependency in `mix.exs`:
+Add this entry to the dependency list in your application's `mix.exs`.
 
 ```elixir
-def deps do
-  [
-    {:amqp_channel_pool, "~> 0.2.1"}
-  ]
-end
+{:amqp_channel_pool, "~> 0.2.1"}
 ```
 
-Install dependencies:
+From the project directory, fetch the dependency.
 
 ```bash
 mix deps.get
 ```
 
-## Start a Pool
+## Start one pool with your application
+
+Add this child to the existing `children` list in your application's `start/2` callback.
 
 ```elixir
-children = [
-  {AMQPChannelPool,
-   name: MyApp.PrimaryPool,
-   connection: [
-     host: "localhost",
-     port: 5672,
-     username: "guest",
-     password: "guest"
-   ],
-   pool_size: 10}
-]
-
-Supervisor.start_link(children, strategy: :one_for_one)
+{AMQPChannelPool, name: MyApp.PublisherPool, connection: [host: "localhost"], pool_size: 1}
 ```
 
-## Checkout a Channel
+The name `MyApp.PublisherPool` identifies the supervised pool process. Start the application in IEx.
+
+```bash
+iex -S mix
+```
+
+## Publish a message
+
+In IEx, declare a demo queue and publish to it in one checkout.
 
 ```elixir
-{:ok, :ok} =
-  AMQPChannelPool.checkout(MyApp.PrimaryPool, fn channel ->
-    AMQP.Queue.declare(channel, "service.health", durable: true)
-  end, timeout: 5_000)
+AMQPChannelPool.checkout(MyApp.PublisherPool, fn channel ->
+  case AMQP.Queue.declare(channel, "demo.events") do
+    {:ok, _queue_info} -> AMQP.Basic.publish(channel, "", "demo.events", "hello")
+    {:error, reason} -> {:error, reason}
+  end
+end, [])
+# => {:ok, :ok}
 ```
 
-Use `checkout!/3` when you want pool-layer failures to raise:
+The outer `{:ok, result}` means the callback returned normally. The inner
+`:ok` is the publish call's result. The empty exchange name (`""`) selects
+RabbitMQ's default exchange, which routes by queue name. If declaration or
+publishing returns `{:error, reason}`, checkout returns `{:ok, {:error, reason}}`.
+Broker confirmation and consumer acknowledgement are separate operations.
 
-```elixir
-AMQPChannelPool.checkout!(MyApp.PrimaryPool, fn channel ->
-  AMQP.Queue.declare(channel, "service.audit", durable: true)
-end, timeout: 5_000)
-```
-
-## Stop a Pool
-
-```elixir
-:ok = AMQPChannelPool.stop(MyApp.PrimaryPool)
-```
-
-## Next Guides
-
-- [Configuration](configuration.md)
-- [Checkout and Failure Semantics](checkout_and_failure_semantics.md)
-- [Recovery and Worker Lifecycle](recovery_and_worker_lifecycle.md)
-- [Telemetry](telemetry.md)
+For a reusable publisher, continue to [Enqueue a background job](publishing_examples.md#enqueue-a-background-job).
