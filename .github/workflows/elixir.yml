@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+env:
+  BEAM_ELIXIR_VERSION: "1.20.5"
+  BEAM_OTP_VERSION: "29.1.2"
+
 jobs:
   unit_and_static:
     name: Unit, Lint, Dialyzer, and Coverage
@@ -25,25 +29,23 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124
         with:
-          elixir-version: "1.16.3"
-          otp-version: "26.0"
+          elixir-version: ${{ env.BEAM_ELIXIR_VERSION }}
+          otp-version: ${{ env.BEAM_OTP_VERSION }}
 
       - name: Restore dependencies cache
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ env.BEAM_ELIXIR_VERSION }}-${{ env.BEAM_OTP_VERSION }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-
+            ${{ runner.os }}-mix-${{ env.BEAM_ELIXIR_VERSION }}-${{ env.BEAM_OTP_VERSION }}-
 
       - name: Cache Dialyzer PLT
         id: plt-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: _build
-          key: ${{ runner.os }}-dialyzer-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-dialyzer-
+          key: ${{ runner.os }}-dialyzer-${{ env.BEAM_ELIXIR_VERSION }}-${{ env.BEAM_OTP_VERSION }}-${{ hashFiles('**/mix.lock') }}
 
       - name: Install dependencies
         run: MIX_ENV=test mix deps.get
@@ -69,6 +71,25 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  compatibility:
+    name: Unit Tests (Elixir 1.16 / OTP 26)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124
+        with:
+          elixir-version: "1.16.3"
+          otp-version: "26.2.5.21"
+
+      - name: Install test dependencies
+        run: MIX_ENV=test mix deps.get
+
+      - name: Run unit tests
+        run: mix test
+
   integration:
     name: Integration Tests (RabbitMQ)
     runs-on: ubuntu-22.04
@@ -93,16 +114,16 @@ jobs:
       - name: Set up Elixir
         uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124
         with:
-          elixir-version: "1.16.3"
-          otp-version: "26.0"
+          elixir-version: ${{ env.BEAM_ELIXIR_VERSION }}
+          otp-version: ${{ env.BEAM_OTP_VERSION }}
 
       - name: Restore dependencies cache
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          key: ${{ runner.os }}-mix-${{ env.BEAM_ELIXIR_VERSION }}-${{ env.BEAM_OTP_VERSION }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-
+            ${{ runner.os }}-mix-${{ env.BEAM_ELIXIR_VERSION }}-${{ env.BEAM_OTP_VERSION }}-
 
       - name: Install dependencies
         run: MIX_ENV=test mix deps.get
