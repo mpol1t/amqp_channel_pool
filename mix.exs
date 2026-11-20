@@ -1,5 +1,6 @@
 defmodule ElixirHexTemplate.MixProject do
   use Mix.Project
+  @source_url "https://github.com/mpol1t/amqp_channel_pool"
   @version "0.2.1"
 
   def project do
@@ -14,11 +15,11 @@ defmodule ElixirHexTemplate.MixProject do
       package: [
         licenses: ["Apache-2.0"],
         links: %{
-          "GitHub" => "https://github.com/mpol1t/amqp_channel_pool",
-          "Changelog" => "https://github.com/mpol1t/amqp_channel_pool/blob/main/CHANGELOG.md"
+          "GitHub" => @source_url,
+          "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
         }
       ],
-      docs: docs(),
+      docs: &docs/0,
       test_coverage: [tool: ExCoveralls]
     ]
   end
@@ -59,13 +60,16 @@ defmodule ElixirHexTemplate.MixProject do
   end
 
   defp docs do
+    source_ref = "v#{@version}"
+    readme = docs_readme(source_ref)
+
     [
       main: "readme",
-      source_ref: "v#{@version}",
-      source_url: "https://github.com/mpol1t/amqp_channel_pool",
+      source_ref: source_ref,
+      source_url: @source_url,
       canonical: "https://hexdocs.pm/amqp_channel_pool",
       extras: [
-        "README.md",
+        {readme, source: "README.md"},
         "CHANGELOG.md",
         "CONTRIBUTING.md",
         "LICENSE",
@@ -77,7 +81,7 @@ defmodule ElixirHexTemplate.MixProject do
         "docs/guides/integration_testing.md"
       ],
       groups_for_extras: [
-        Project: ["README.md", "CHANGELOG.md", "CONTRIBUTING.md", "LICENSE"],
+        Project: [readme, "CHANGELOG.md", "CONTRIBUTING.md", "LICENSE"],
         Guides: ~r/docs\/guides\/.*/
       ],
       groups_for_modules: [
@@ -90,5 +94,20 @@ defmodule ElixirHexTemplate.MixProject do
       ],
       skip_undefined_reference_warnings_on: []
     ]
+  end
+
+  defp docs_readme(source_ref) do
+    # GitHub resolves relative links against the browsed revision. HexDocs needs the release ref.
+    markdown =
+      "README.md"
+      |> File.read!()
+      |> String.replace(
+        ~r/\]\((\.github\/(?:workflows\/elixir\.yml|\.tool-versions))\)/,
+        "](" <> @source_url <> "/blob/" <> source_ref <> "/\\1)"
+      )
+
+    path = Path.join(Mix.Project.manifest_path(), "README.md")
+    File.write!(path, markdown)
+    path
   end
 end

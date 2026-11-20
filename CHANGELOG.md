@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- Published tested application runtimes. CI runs the unit and RabbitMQ integration suites on Elixir 1.16 (OTP 26), 1.17 (OTP 26 and 27), 1.18 (OTP 26 and 27), 1.19 (OTP 26 through 28), and 1.20 (OTP 27 through 29).
+
 ## [0.2.1] - 2026-03-05
 
 ### Added

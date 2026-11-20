@@ -2,8 +2,7 @@
 [![Hex.pm](https://img.shields.io/hexpm/v/amqp_channel_pool.svg)](https://hex.pm/packages/amqp_channel_pool)
 [![License](https://img.shields.io/github/license/mpol1t/amqp_channel_pool.svg)](https://github.com/mpol1t/amqp_channel_pool/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-hexdocs-blue.svg)](https://hexdocs.pm/amqp_channel_pool)
-[![Build Status](https://github.com/mpol1t/amqp_channel_pool/actions/workflows/elixir.yml/badge.svg)](https://github.com/mpol1t/amqp_channel_pool/actions)
-[![Elixir Version](https://img.shields.io/badge/elixir-~%3E%201.16-purple.svg)](https://elixir-lang.org/)
+[![Build Status](https://github.com/mpol1t/amqp_channel_pool/actions/workflows/elixir.yml/badge.svg?branch=main)](https://github.com/mpol1t/amqp_channel_pool/actions/workflows/elixir.yml)
 
 # AMQPChannelPool
 
@@ -37,6 +36,20 @@ Then fetch dependencies:
 ```bash
 mix deps.get
 ```
+
+### Tested runtimes
+
+These are the Elixir and Erlang/OTP runtimes for the application connecting to RabbitMQ. For a new application, the primary tested pair is **Elixir 1.20 / OTP 29**.
+
+| Elixir | Tested OTP majors |
+| --- | --- |
+| 1.16 | 26 |
+| 1.17 | 26, 27 |
+| 1.18 | 26, 27 |
+| 1.19 | 26, 27, 28 |
+| 1.20 | 27, 28, 29 |
+
+For each combination, CI runs the unit and RabbitMQ integration suites with locked dependencies on one representative patch pair specified in the [CI workflow](.github/workflows/elixir.yml) and [primary runtime pins](.github/.tool-versions).
 
 ## Configuration
 
@@ -201,9 +214,6 @@ The pool does not provide publish convenience APIs and does not guarantee delive
 semantics on behalf of the application.
 
 ## Running Tests
-
-CI uses Elixir 1.20.5 and Erlang/OTP 29.1.2, with a separate unit test job
-for Elixir 1.16.3 and OTP 26.
 
 Run unit tests with `mix test` and static analysis with `mix dialyzer`. For the broker-backed suite, see [Integration Testing](docs/guides/integration_testing.md).
 
