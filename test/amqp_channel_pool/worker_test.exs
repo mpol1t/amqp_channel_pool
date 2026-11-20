@@ -290,8 +290,9 @@ defmodule AMQPChannelPool.WorkerTest do
 
     assert {:ok, %State{} = worker_state, pool_state} = Worker.init_worker(pool_state)
     dead_channel_pid = worker_state.channel.pid
+    monitor_ref = Process.monitor(dead_channel_pid)
     send(dead_channel_pid, :stop)
-    refute Process.alive?(dead_channel_pid)
+    assert_receive {:DOWN, ^monitor_ref, :process, ^dead_channel_pid, :normal}
 
     assert {:ok, %State{} = client_state, %State{} = updated_worker_state, _pool_state} =
              Worker.handle_checkout(:checkout, self(), worker_state, pool_state)

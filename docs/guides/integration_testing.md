@@ -20,7 +20,7 @@ docker run --rm --network amqp-channel-pool-test-net \
   -e RUN_INTEGRATION=true \
   -e AMQP_TEST_HOST=amqp-test-rabbit \
   -e AMQP_TEST_PORT=5672 \
-  -v "$(pwd)":/app -w /app elixir:1.16 \
+  -v "$(pwd)":/app -w /app elixir:1.20.5-otp-29 \
   sh -lc 'mix local.hex --force && mix local.rebar --force && mix deps.get && mix test --only integration'
 
 docker stop amqp-test-rabbit

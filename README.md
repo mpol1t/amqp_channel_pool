@@ -202,36 +202,10 @@ semantics on behalf of the application.
 
 ## Running Tests
 
-```bash
-mix test
-```
+CI uses Elixir 1.20.5 and Erlang/OTP 29.1.2, with a separate unit test job
+for Elixir 1.16.3 and OTP 26.
 
-Unit tests run by default. Integration tests are tagged with `:integration` and
-are excluded unless `RUN_INTEGRATION=true` is set.
-
-### Running Integration Tests With RabbitMQ
-
-```bash
-docker network create amqp-channel-pool-test-net
-docker run -d --rm --name amqp-test-rabbit --network amqp-channel-pool-test-net rabbitmq:3.13-management
-
-docker run --rm --network amqp-channel-pool-test-net \
-  -e RUN_INTEGRATION=true \
-  -e AMQP_TEST_HOST=amqp-test-rabbit \
-  -e AMQP_TEST_PORT=5672 \
-  -v "$(pwd)":/app -w /app elixir:1.16 \
-  sh -lc 'mix local.hex --force && mix local.rebar --force && mix deps.get && mix test --only integration'
-
-docker stop amqp-test-rabbit
-docker network rm amqp-channel-pool-test-net
-```
-
-## Running Dialyzer
-
-```bash
-mix dialyzer --plt
-mix dialyzer
-```
+Run unit tests with `mix test` and static analysis with `mix dialyzer`. For the broker-backed suite, see [Integration Testing](docs/guides/integration_testing.md).
 
 ## Contributing
 

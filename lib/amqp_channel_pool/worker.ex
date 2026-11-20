@@ -335,8 +335,8 @@ defmodule AMQPChannelPool.Worker do
     end
   end
 
-  defp reset_resources(state) do
-    %State{
+  defp reset_resources(%State{} = state) do
+    %{
       state
       | connection: nil,
         channel: nil,
@@ -395,11 +395,11 @@ defmodule AMQPChannelPool.Worker do
       {:error, :channel_setup, {kind, reason}, state}
   end
 
-  defp install_monitors(state) do
+  defp install_monitors(%State{} = state) do
     with {:ok, connection_pid} <- fetch_pid(state.connection, :connection),
          {:ok, channel_pid} <- fetch_pid(state.channel, :channel) do
       {:ok,
-       %State{
+       %{
          state
          | connection_monitor_ref: Process.monitor(connection_pid),
            channel_monitor_ref: Process.monitor(channel_pid)
@@ -415,11 +415,11 @@ defmodule AMQPChannelPool.Worker do
   defp fetch_pid(resource, name),
     do: {:error, :monitor_installation, {:missing_pid, name, resource}}
 
-  defp put_connection(state, connection), do: %State{state | connection: connection}
-  defp put_channel(state, channel), do: %State{state | channel: channel}
+  defp put_connection(%State{} = state, connection), do: %{state | connection: connection}
+  defp put_channel(%State{} = state, channel), do: %{state | channel: channel}
 
-  defp put_metadata(state, key, value) do
-    %State{state | metadata: Map.put(state.metadata, key, value)}
+  defp put_metadata(%State{} = state, key, value) do
+    %{state | metadata: Map.put(state.metadata, key, value)}
   end
 
   defp resources_alive?(state) do
