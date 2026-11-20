@@ -60,7 +60,7 @@ defmodule ElixirHexTemplate.MixProject do
   end
 
   defp docs do
-    source_ref = "v#{@version}"
+    source_ref = System.get_env("AMQP_CHANNEL_POOL_DOCS_SOURCE_REF", "v#{@version}")
     readme = docs_readme(source_ref)
 
     [
@@ -74,6 +74,7 @@ defmodule ElixirHexTemplate.MixProject do
         "CONTRIBUTING.md",
         "LICENSE",
         "docs/guides/getting_started.md",
+        "docs/guides/publishing_examples.md",
         "docs/guides/configuration.md",
         "docs/guides/checkout_and_failure_semantics.md",
         "docs/guides/recovery_and_worker_lifecycle.md",
@@ -97,7 +98,7 @@ defmodule ElixirHexTemplate.MixProject do
   end
 
   defp docs_readme(source_ref) do
-    # GitHub resolves relative links against the browsed revision. HexDocs needs the release ref.
+    # HexDocs needs explicit URLs for files outside its generated pages.
     markdown =
       "README.md"
       |> File.read!()

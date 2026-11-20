@@ -46,11 +46,9 @@ It must return `:ok` or `{:error, reason}`.
 
 ```elixir
 defp setup_channel(channel) do
-  with {:ok, _} <- AMQP.Exchange.declare(channel, "events", :topic, durable: true),
+  with :ok <- AMQP.Exchange.declare(channel, "events", :topic, durable: true),
        {:ok, _} <- AMQP.Queue.declare(channel, "events.primary", durable: true) do
-    :ok
-  else
-    {:error, reason} -> {:error, reason}
+    AMQP.Queue.bind(channel, "events.primary", "events", routing_key: "order.*")
   end
 end
 ```
