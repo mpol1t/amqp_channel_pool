@@ -12,86 +12,56 @@ permissions:
   contents: read
 
 jobs:
-  unit_and_static:
-    name: Unit, Lint, Dialyzer, and Coverage
+  runtime:
+    name: Elixir ${{ matrix.elixir-line }} / OTP ${{ matrix.otp-major }}
     runs-on: ubuntu-22.04
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Set up Elixir
-        uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124
-        with:
-          version-file: .github/.tool-versions
-          version-type: strict
-
-      - name: Restore dependencies cache
-        uses: actions/cache@v5
-        with:
-          path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('.github/.tool-versions') }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-${{ hashFiles('.github/.tool-versions') }}-
-
-      - name: Cache Dialyzer PLT
-        id: plt-cache
-        uses: actions/cache@v5
-        with:
-          path: _build
-          key: ${{ runner.os }}-dialyzer-${{ hashFiles('.github/.tool-versions') }}-${{ hashFiles('**/mix.lock') }}
-
-      - name: Install dependencies
-        run: MIX_ENV=test mix deps.get
-
-      - name: Build PLT
-        if: steps.plt-cache.outputs.cache-hit != 'true'
-        run: mix dialyzer --plt
-
-      - name: Run Dialyzer
-        run: mix dialyzer
-
-      - name: Run Credo Linter
-        run: mix credo
-
-      - name: Run tests with coverage
-        run: mix coveralls.json
-
-      - name: Verify JSON coverage report
-        run: test -s cover/excoveralls.json
-
-      - name: Upload coverage reports to Codecov
-        if: github.actor != 'dependabot[bot]'
-        uses: codecov/codecov-action@v4
-        with:
-          fail_ci_if_error: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-  compatibility:
-    name: Unit Tests (Elixir 1.16 / OTP 26)
-    runs-on: ubuntu-22.04
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Elixir
-        uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124
-        with:
-          elixir-version: "1.16.3"
-          otp-version: "26.2.5.21"
-
-      - name: Install test dependencies
-        run: MIX_ENV=test mix deps.get
-
-      - name: Run unit tests
-        run: mix test
-
-  integration:
-    name: Integration Tests (RabbitMQ)
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - elixir-line: '1.16'
+            otp-major: '26'
+            elixir-version: '1.16.3-otp-26'
+            otp-version: '26.2.5.21'
+          - elixir-line: '1.17'
+            otp-major: '26'
+            elixir-version: '1.17.3-otp-26'
+            otp-version: '26.2.5.21'
+          - elixir-line: '1.17'
+            otp-major: '27'
+            elixir-version: '1.17.3-otp-27'
+            otp-version: '27.3.4.19'
+          - elixir-line: '1.18'
+            otp-major: '26'
+            elixir-version: '1.18.6-otp-26'
+            otp-version: '26.2.5.21'
+          - elixir-line: '1.18'
+            otp-major: '27'
+            elixir-version: '1.18.6-otp-27'
+            otp-version: '27.3.4.19'
+          - elixir-line: '1.19'
+            otp-major: '26'
+            elixir-version: '1.19.7-otp-26'
+            otp-version: '26.2.5.21'
+          - elixir-line: '1.19'
+            otp-major: '27'
+            elixir-version: '1.19.7-otp-27'
+            otp-version: '27.3.4.19'
+          - elixir-line: '1.19'
+            otp-major: '28'
+            elixir-version: '1.19.7-otp-28'
+            otp-version: '28.5.0.8'
+          - elixir-line: '1.20'
+            otp-major: '27'
+            elixir-version: '1.20.5-otp-27'
+            otp-version: '27.3.4.19'
+          - elixir-line: '1.20'
+            otp-major: '28'
+            elixir-version: '1.20.5-otp-28'
+            otp-version: '28.5.0.8'
+          - elixir-line: '1.20'
+            otp-major: '29'
+            primary: true
 
     services:
       rabbitmq:
@@ -104,32 +74,96 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+    env:
+      RUN_INTEGRATION: 'true'
+      AMQP_TEST_HOST: '127.0.0.1'
+      AMQP_TEST_PORT: '5672'
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: Set up Elixir
+      - name: Set up pinned Elixir and OTP
+        if: '!matrix.primary'
+        uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124
+        with:
+          elixir-version: ${{ matrix.elixir-version }}
+          otp-version: ${{ matrix.otp-version }}
+          version-type: strict
+
+      - name: Set up primary Elixir and OTP
+        id: primary
+        if: matrix.primary
         uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124
         with:
           version-file: .github/.tool-versions
           version-type: strict
 
-      - name: Restore dependencies cache
+      - name: Log resolved runtime
+        run: |
+          elixir --version
+          printf 'Erlang/OTP patch: '
+          elixir -e 'IO.puts(File.read!(Path.join([:code.root_dir(), "releases", System.otp_release(), "OTP_VERSION"])))'
+
+      - name: Install locked test dependencies
+        run: MIX_ENV=test mix deps.get --check-locked
+
+      - name: Build test dependencies
+        id: build
+        run: MIX_ENV=test mix deps.compile
+
+      - name: Cache Dialyzer PLT
+        if: matrix.primary
         uses: actions/cache@v5
         with:
-          path: deps
-          key: ${{ runner.os }}-mix-${{ hashFiles('.github/.tool-versions') }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-${{ hashFiles('.github/.tool-versions') }}-
+          path: _build/test/*.plt*
+          key: ubuntu-22.04-${{ runner.arch }}-dialyzer-${{ steps.primary.outputs.elixir-version }}-${{ steps.primary.outputs.otp-version }}-${{ hashFiles('mix.lock') }}
 
-      - name: Install dependencies
-        run: MIX_ENV=test mix deps.get
+      - name: Run Dialyzer
+        if: matrix.primary
+        run: MIX_ENV=test mix dialyzer
 
-      - name: Run integration tests
+      - name: Run Credo Linter
+        if: matrix.primary
+        run: MIX_ENV=test mix credo
+
+      - name: Run unit and RabbitMQ integration tests
+        if: '!matrix.primary'
+        run: mix test
+
+      - name: Run unit and RabbitMQ integration tests with coverage
+        id: coverage
+        if: matrix.primary && !cancelled() && steps.build.outcome == 'success'
+        run: mix coveralls.json
+
+      - name: Verify JSON coverage report
+        if: matrix.primary && !cancelled() && steps.coverage.outcome == 'success'
+        run: test -s cover/excoveralls.json
+
+      - name: Upload coverage reports to Codecov
+        if: matrix.primary && github.actor != 'dependabot[bot]'
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
         env:
-          RUN_INTEGRATION: "true"
-          AMQP_TEST_HOST: "127.0.0.1"
-          AMQP_TEST_PORT: "5672"
-        run: MIX_ENV=test mix test --only integration
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  # Preserve the required check names configured on main.
+  required_checks:
+    name: ${{ matrix.check }}
+    runs-on: ubuntu-22.04
+    needs: runtime
+    if: always()
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - Integration Tests (RabbitMQ)
+          - Unit, Lint, Dialyzer, and Coverage
+    steps:
+      - name: Verify runtime results
+        env:
+          RUNTIME_RESULT: ${{ needs.runtime.result }}
+        run: test "$RUNTIME_RESULT" = success

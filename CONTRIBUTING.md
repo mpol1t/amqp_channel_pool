@@ -14,6 +14,10 @@
 - `mix credo`
 - `MIX_ENV=test mix coveralls.json`
 
+### Runtime compatibility
+
+When adding or removing an Elixir/OTP combination, update the CI matrix, the [Tested runtimes table](README.md#tested-runtimes), and the changelog together. Verify representative patch updates in CI and reassess the OTP floor when the AMQP client dependencies change.
+
 ## Review Expectations
 
 - keep pull requests focused
