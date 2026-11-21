@@ -347,7 +347,9 @@ defmodule AMQPChannelPoolTest do
     assert {:error, %AMQPChannelPool.Worker.RecoveryError{} = error} =
              AMQPChannelPool.checkout(
                name,
-               fn _channel -> flunk("recovery failure invoked its callback") end, timeout: 100)
+               fn _channel -> flunk("recovery failure invoked its callback") end,
+               timeout: 100
+             )
 
     assert error.stage == :channel_setup
     assert error.reason == :setup_failed_during_recovery

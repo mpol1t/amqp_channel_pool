@@ -217,16 +217,24 @@ defmodule AMQPChannelPool.TelemetryTest do
             after
               5_000 -> flunk("timed out waiting to release the borrowed channel")
             end
-          end, timeout: 1_000)
+          end,
+          timeout: 1_000
+        )
       end)
 
     assert_receive {:borrowed, ^release_ref, :ok_channel}, 1_000
+
+    assert_received {:telemetry_event, [:amqp_channel_pool, :checkout, :start], _,
+                     %{pool: ^name, timeout: 1_000}}
 
     assert_checkout_exit(:checkout, name, 25, :timeout)
     assert_checkout_exit(:checkout!, name, 0, :timeout)
 
     send(borrower.pid, {:release, release_ref})
     assert Task.await(borrower, 1_000) == :ok_channel
+
+    assert_received {:telemetry_event, [:amqp_channel_pool, :checkout, :stop], _,
+                     %{pool: ^name, timeout: 1_000, result: :ok}}
 
     assert {:ok, :ok_channel} =
              AMQPChannelPool.checkout(name, &Function.identity/1, timeout: 1_000)
@@ -291,7 +299,9 @@ defmodule AMQPChannelPool.TelemetryTest do
                   inner,
                   fn _channel ->
                     flunk("missing pool invoked the nested callback")
-                  end, timeout: 100)
+                  end,
+                  timeout: 100
+                )
               )
 
             send(test_pid, {:nested_exit, reason})
@@ -401,6 +411,9 @@ defmodule AMQPChannelPool.TelemetryTest do
     refute_received {:telemetry_event, [:amqp_channel_pool, :worker, :init, _], _, %{pool: ^pool}}
 
     assert {:ok, _pool_state} = Worker.terminate_worker(:shutdown, worker_state, pool_state)
+
+    assert_received {:telemetry_event, [:amqp_channel_pool, :worker, :terminate], %{},
+                     %{pool: ^pool, result: :terminated, reason: :shutdown}}
   end
 
   test "worker init failure emits init exception telemetry" do
@@ -542,7 +555,7 @@ defmodule AMQPChannelPool.TelemetryTest do
 
     assert error.reason == :recovery_open_failed
 
-    assert {:remove, {:discard_worker, %RecoveryError{}}, pool_state} =
+    assert {:remove, {:discard_worker, ^error}, pool_state} =
              Worker.handle_checkin(failed_worker_state, self(), failed_worker_state, pool_state)
 
     assert {:ok, _pool_state} =
@@ -569,7 +582,7 @@ defmodule AMQPChannelPool.TelemetryTest do
     assert discard_measurements == %{}
     assert discard_metadata.pool == pool
     assert discard_metadata.result == :discarded
-    assert %RecoveryError{} = discard_metadata.reason
+    assert discard_metadata.reason == error
 
     assert_receive {:telemetry_event, [:amqp_channel_pool, :worker, :terminate],
                     terminate_measurements, terminate_metadata}
@@ -577,6 +590,7 @@ defmodule AMQPChannelPool.TelemetryTest do
     assert terminate_measurements == %{}
     assert terminate_metadata.pool == pool
     assert terminate_metadata.result == :terminated
+    assert terminate_metadata.reason == error
 
     refute_received {:telemetry_event, [:amqp_channel_pool, :worker, :recover, _], _,
                      %{pool: ^pool}}
@@ -624,12 +638,18 @@ defmodule AMQPChannelPool.TelemetryTest do
                      %{duration: duration}, %{pool: ^name, timeout: ^timeout} = metadata}
 
     assert end_event == :exception
-    assert %{reason: ^reason, kind: :exit, result: :pool_checkout_exception} = metadata
+
+    assert %{
+             reason: ^reason,
+             kind: :exit,
+             result: :pool_checkout_exception,
+             worker_pid: nil,
+             worker_state: nil
+           } = metadata
 
     assert is_integer(duration) and duration >= 0
 
-    refute_received {:telemetry_event, [:amqp_channel_pool, :checkout, _], _,
-                     %{pool: ^name, timeout: ^timeout}}
+    refute_received {:telemetry_event, [:amqp_channel_pool, :checkout, _], _, %{pool: ^name}}
   end
 
   defp pool_name(label) do

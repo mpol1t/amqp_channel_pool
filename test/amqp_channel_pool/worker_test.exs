@@ -413,17 +413,13 @@ defmodule AMQPChannelPool.WorkerTest do
       end
     end
 
-    assert {:ok, pid} =
-             AMQPChannelPool.start_link(
-               name: name,
-               connection: [test_pid: self(), label: label],
-               channel_setup: setup,
-               pool_size: 1
-             )
-
-    on_exit(fn ->
-      if Process.alive?(pid), do: AMQPChannelPool.stop(name)
-    end)
+    start_supervised!(
+      {AMQPChannelPool,
+       name: name,
+       connection: [test_pid: self(), label: label],
+       channel_setup: setup,
+       pool_size: 1}
+    )
 
     first_channel = AMQPChannelPool.checkout!(name, & &1.pid, timeout: 1_000)
 
@@ -508,6 +504,11 @@ defmodule AMQPChannelPool.WorkerTest do
 
     send(channel, :stop)
     assert_receive {:DOWN, ^channel_ref, :process, ^channel, :normal} = channel_down, 1_000
+
+    assert {:ok, %State{lifecycle: :stale} = channel_stale} =
+             Worker.handle_info(channel_down, worker)
+
+    assert channel_stale.metadata.stale_reason == {:channel_down, :normal}
     assert {:ok, ^stale} = Worker.handle_info(channel_down, stale)
 
     assert {:ok, %State{lifecycle: :ready} = recovered, recovered, pool_state} =
