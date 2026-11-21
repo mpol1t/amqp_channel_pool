@@ -6,7 +6,7 @@ We currently support the latest major version of `amqp_channel_pool`.
 
 | Version | Supported          |
 |---------| ------------------ |
-| 0.2.1   | :white_check_mark: |
+| 0.3.0   | :white_check_mark: |
 ## Reporting a Vulnerability
 
 Please report security issues privately to @mpol1t.
