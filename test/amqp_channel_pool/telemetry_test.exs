@@ -178,20 +178,12 @@ defmodule AMQPChannelPool.TelemetryTest do
                timeout: 250
              )
 
-    assert_receive {:telemetry_event, [:amqp_channel_pool, :checkout, :start], measurements,
-                    metadata}
-
+    {measurements, _metadata} = assert_next_checkout_event(name, :start, 250)
     assert is_integer(measurements.system_time)
-    assert metadata.pool == name
-    assert metadata.timeout == 250
 
-    assert_receive {:telemetry_event, [:amqp_channel_pool, :checkout, :stop], stop_measurements,
-                    stop_metadata}
-
+    {stop_measurements, stop_metadata} = assert_next_checkout_event(name, :stop, 250)
     assert is_integer(stop_measurements.duration)
     assert stop_measurements.duration >= 0
-    assert stop_metadata.pool == name
-    assert stop_metadata.timeout == 250
     assert stop_metadata.result == :ok
     assert is_pid(stop_metadata.worker_pid)
     assert stop_metadata.worker_state == [:channel]
@@ -319,16 +311,14 @@ defmodule AMQPChannelPool.TelemetryTest do
     assert_received {:nested_exit, ^inner_reason}
     assert_checkout_exit_events(inner, 100, inner_reason)
 
-    assert_received {:telemetry_event, [:amqp_channel_pool, :checkout, :start], _,
-                     %{pool: ^outer, timeout: 1_000}}
+    assert_next_checkout_event(outer, :start, 1_000)
+    {_measurements, metadata} = assert_next_checkout_event(outer, :exception, 1_000)
 
-    assert_received {:telemetry_event, ^event, _,
-                     %{
-                       pool: ^outer,
-                       kind: :error,
-                       result: :callback_exception,
-                       reason: %RuntimeError{message: "outer callback failed"}
-                     }}
+    assert %{
+             kind: :error,
+             result: :callback_exception,
+             reason: %RuntimeError{message: "outer callback failed"}
+           } = metadata
 
     refute_received {:telemetry_event, [:amqp_channel_pool, :checkout, _], _, %{pool: ^outer}}
   end
