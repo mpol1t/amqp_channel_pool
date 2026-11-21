@@ -6,7 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-21
+
+### Changed
+
+- The AMQP client dependency moves from `amqp ~> 4.1.0` to `~> 4.3.0`. Applications that also pin AMQP to 4.1.x need to update that constraint when upgrading. OTP 26 is the oldest tested client runtime.
+
 ### Added
+
+- Runnable publishing examples cover a first message, concurrent callers, topic routing, and channel recovery.
+- Expanded tests exercise checkout contention, worker cleanup and recovery, and checkout telemetry.
 - Published tested application runtimes. CI runs the unit and RabbitMQ integration suites on Elixir 1.16 (OTP 26), 1.17 (OTP 26 and 27), 1.18 (OTP 26 and 27), 1.19 (OTP 26 through 28), and 1.20 (OTP 27 through 29).
 
 ## [0.2.1] - 2026-03-05

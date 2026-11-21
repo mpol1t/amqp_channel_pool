@@ -10,7 +10,7 @@ Use a named channel pool when several processes in your Elixir application publi
 
 ## Publish your first message
 
-With RabbitMQ running on `localhost:5672` and the default local credentials, add `{:amqp_channel_pool, "~> 0.2.1"}` to your Mix dependencies and run `mix deps.get`. Add this child to your application’s supervision tree:
+With RabbitMQ running on `localhost:5672` and the default local credentials, add `{:amqp_channel_pool, "~> 0.3.0"}` to your Mix dependencies and run `mix deps.get`. Add this child to your application’s supervision tree:
 
 ```elixir
 {AMQPChannelPool, name: MyApp.PublisherPool, connection: [host: "localhost"], pool_size: 2}

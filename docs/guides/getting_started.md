@@ -7,7 +7,7 @@ Publish a message from an existing supervised Mix application. This example assu
 Add this entry to the dependency list in your application's `mix.exs`.
 
 ```elixir
-{:amqp_channel_pool, "~> 0.2.1"}
+{:amqp_channel_pool, "~> 0.3.0"}
 ```
 
 From the project directory, fetch the dependency.
