@@ -12,7 +12,7 @@ defmodule AMQPChannelPool.RecoveryIntegrationTest do
     :ok
   end
 
-  test "channel closure is detected and next checkout recovers before handing out a channel" do
+  test "the replacement channel publishes a message after channel closure" do
     pool_name = IntegrationHelpers.unique_pool_name(__MODULE__, :channel_closure)
 
     {:ok, pid} =
@@ -27,20 +27,19 @@ defmodule AMQPChannelPool.RecoveryIntegrationTest do
     initial_channel_pid =
       AMQPChannelPool.checkout!(pool_name, fn channel -> channel.pid end, timeout: 1_000)
 
+    monitor_ref = Process.monitor(initial_channel_pid)
     assert initial_channel_pid == IntegrationHelpers.close_channel_in_checkout!(pool_name)
+    assert_receive {:DOWN, ^monitor_ref, :process, ^initial_channel_pid, _reason}, 5_000
 
-    # Channel shutdown is asynchronous in the broker/client path.
-    # Wait for the original channel process to actually terminate before asserting recovery.
-    :ok =
-      IntegrationHelpers.eventually!(fn -> not Process.alive?(initial_channel_pid) end,
-        description: "initial channel process shutdown"
-      )
+    payload = "published after closing channel #{inspect(initial_channel_pid)}"
 
     assert {:ok, recovered_channel_pid} =
              AMQPChannelPool.checkout(
                pool_name,
                fn channel ->
-                 assert Process.alive?(channel.pid)
+                 assert {:ok, %{queue: queue}} = AMQP.Queue.declare(channel, "", exclusive: true)
+                 assert :ok = AMQP.Basic.publish(channel, "", queue, payload)
+                 assert {:ok, ^payload, _metadata} = AMQP.Basic.get(channel, queue, no_ack: true)
                  channel.pid
                end,
                timeout: 1_000
@@ -122,10 +121,7 @@ defmodule AMQPChannelPool.RecoveryIntegrationTest do
 
     on_exit(fn -> IntegrationHelpers.stop_pool(pid, pool_name) end)
 
-    :ok =
-      IntegrationHelpers.eventually!(fn -> Agent.get(setup_counter, & &1) == 1 end,
-        description: "initial channel_setup application"
-      )
+    assert Agent.get(setup_counter, & &1) == 1
 
     closed_channel_pid = IntegrationHelpers.close_channel_in_checkout!(pool_name)
 
@@ -137,10 +133,7 @@ defmodule AMQPChannelPool.RecoveryIntegrationTest do
     assert {:ok, _channel_pid} =
              AMQPChannelPool.checkout(pool_name, fn channel -> channel.pid end, timeout: 1_000)
 
-    :ok =
-      IntegrationHelpers.eventually!(fn -> Agent.get(setup_counter, & &1) == 2 end,
-        description: "channel_setup reapplied after recovery"
-      )
+    assert Agent.get(setup_counter, & &1) == 2
   end
 
   test "setup failure during recovery returns a clear pool-layer failure and worker is replaced" do
@@ -185,7 +178,11 @@ defmodule AMQPChannelPool.RecoveryIntegrationTest do
     # The next checkout is expected to hit exactly one recovery attempt.
     # This attempt re-runs setup and deterministically fails on call 2.
     assert {:error, %RecoveryError{} = error} =
-             AMQPChannelPool.checkout(pool_name, fn channel -> channel.pid end, timeout: 1_000)
+             AMQPChannelPool.checkout(
+               pool_name,
+               fn _channel -> flunk("failed recovery invoked its callback") end,
+               timeout: 1_000
+             )
 
     assert error.stage == :channel_setup
     assert error.reason == :setup_failed_during_recovery
@@ -195,10 +192,7 @@ defmodule AMQPChannelPool.RecoveryIntegrationTest do
 
     assert replaced_channel_pid != initial_channel_pid
 
-    :ok =
-      IntegrationHelpers.eventually!(fn -> Agent.get(setup_counter, & &1) >= 3 end,
-        description: "channel_setup invoked again after worker replacement"
-      )
+    assert Agent.get(setup_counter, & &1) == 3
   end
 
   test "recovery checkout assertions remain stable under eventual broker shutdown propagation" do
