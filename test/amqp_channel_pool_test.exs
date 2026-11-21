@@ -142,6 +142,63 @@ defmodule AMQPChannelPoolTest do
              )
   end
 
+  test "start_link rejects malformed options and unknown keys" do
+    for {opts, message} <- [
+          {%{name: :pool}, "expected start options to be a keyword list, got: %{name: :pool}"},
+          {[:name], "expected start options to be a keyword list, got: [:name]"},
+          {[typo: :value], "unknown start option(s): [:typo]"}
+        ] do
+      assert {:error, %ArgumentError{message: ^message}} = AMQPChannelPool.start_link(opts)
+    end
+  end
+
+  test "start_link validates the pool name and connection options" do
+    assert {:error, %ArgumentError{message: message}} =
+             AMQPChannelPool.start_link(name: "pool", connection: [label: :pool])
+
+    assert message ==
+             ~s(expected :name to be an atom, {:global, term}, or {:via, module, term}, got: "pool")
+
+    for connection <- [:options, [:options]] do
+      assert {:error, %ArgumentError{message: message}} =
+               AMQPChannelPool.start_link(
+                 name: pool_name(:bad_connection),
+                 connection: connection
+               )
+
+      assert message == "expected :connection to be a keyword list, got: #{inspect(connection)}"
+    end
+  end
+
+  test "start_link requires a positive integer pool size" do
+    for size <- [0, -1, 1.5] do
+      assert {:error, %ArgumentError{message: message}} =
+               AMQPChannelPool.start_link(
+                 name: pool_name(:bad_size),
+                 connection: [label: :pool],
+                 pool_size: size
+               )
+
+      assert message == "expected :pool_size to be a positive integer, got: #{inspect(size)}"
+    end
+  end
+
+  test "local and Registry names can start, check out from, and stop a pool" do
+    registry = AMQPChannelPoolTest.Registry
+    start_supervised!({Registry, keys: :unique, name: registry})
+
+    for name <- [AMQPChannelPoolTest.LocalPool, {:via, Registry, {registry, :pool}}] do
+      assert {:ok, pid} =
+               AMQPChannelPool.start_link(name: name, connection: [label: :pool], pool_size: 1)
+
+      assert {:ok, {:fake_channel, :pool}} =
+               AMQPChannelPool.checkout(name, &Function.identity/1, [])
+
+      assert :ok = AMQPChannelPool.stop(name)
+      refute Process.alive?(pid)
+    end
+  end
+
   test "child_spec uses a stable default id and supports explicit id override" do
     name = pool_name(:child_spec)
 
@@ -204,6 +261,49 @@ defmodule AMQPChannelPoolTest do
              AMQPChannelPool.checkout!(secondary, fn channel -> channel end, timeout: 100)
   end
 
+  test "checkout returns and checkout! raises for invalid options before invoking the callback" do
+    name = pool_name(:invalid_checkout)
+    {:ok, pid} = AMQPChannelPool.start_link(name: name, connection: [label: :pool], pool_size: 1)
+    on_exit(fn -> stop_pool(pid, name) end)
+
+    callback = fn _channel -> flunk("invalid checkout invoked its callback") end
+
+    invalid_options = [
+      {%{timeout: 0}, "expected checkout options to be a keyword list, got: %{timeout: 0}"},
+      {[:timeout], "expected checkout options to be a keyword list, got: [:timeout]"},
+      {[typo: :value], "unknown checkout option(s): [:typo]"}
+    ]
+
+    invalid_timeouts =
+      for timeout <- [-1, 1.5, :infinity] do
+        {[timeout: timeout],
+         "expected :timeout to be a non-negative integer, got: #{inspect(timeout)}"}
+      end
+
+    for {opts, message} <- invalid_options ++ invalid_timeouts do
+      assert {:error, %ArgumentError{message: ^message}} =
+               AMQPChannelPool.checkout(name, callback, opts)
+
+      assert_raise ArgumentError, message, fn ->
+        AMQPChannelPool.checkout!(name, callback, opts)
+      end
+    end
+
+    assert {:ok, {:fake_channel, :pool}} =
+             AMQPChannelPool.checkout(name, &Function.identity/1, [])
+  end
+
+  test "checkout wraps a normally returned error while checkout! returns it directly" do
+    name = pool_name(:callback_result)
+    {:ok, pid} = AMQPChannelPool.start_link(name: name, connection: [label: :pool], pool_size: 1)
+    on_exit(fn -> stop_pool(pid, name) end)
+
+    callback = fn {:fake_channel, :pool} -> {:error, :callback_result} end
+
+    assert {:ok, {:error, :callback_result}} = AMQPChannelPool.checkout(name, callback, [])
+    assert {:error, :callback_result} = AMQPChannelPool.checkout!(name, callback, [])
+  end
+
   test "stop/1 stops only the targeted named pool" do
     primary = pool_name(:stop_primary)
     secondary = pool_name(:stop_secondary)
@@ -245,7 +345,9 @@ defmodule AMQPChannelPoolTest do
     end)
 
     assert {:error, %AMQPChannelPool.Worker.RecoveryError{} = error} =
-             AMQPChannelPool.checkout(name, fn _channel -> :ok end, timeout: 100)
+             AMQPChannelPool.checkout(
+               name,
+               fn _channel -> flunk("recovery failure invoked its callback") end, timeout: 100)
 
     assert error.stage == :channel_setup
     assert error.reason == :setup_failed_during_recovery
@@ -271,31 +373,19 @@ defmodule AMQPChannelPoolTest do
       stop_pool(pid, name)
     end)
 
-    assert_raise AMQPChannelPool.Worker.RecoveryError, fn ->
-      AMQPChannelPool.checkout!(name, fn _channel -> :ok end, timeout: 100)
-    end
+    assert_raise AMQPChannelPool.Worker.RecoveryError,
+                 "worker recovery failed during :channel_setup from lifecycle :stale: :setup_failed_during_recovery",
+                 fn ->
+                   AMQPChannelPool.checkout!(
+                     name,
+                     fn _channel -> flunk("recovery failure invoked its callback") end,
+                     timeout: 100
+                   )
+                 end
   end
 
   test "checkout/3 preserves callback raise semantics" do
-    original_worker_module = Application.get_env(:amqp_channel_pool, :worker_module)
-    Application.put_env(:amqp_channel_pool, :worker_module, AMQPChannelPool.BorrowerFailureWorker)
-
-    on_exit(fn ->
-      if original_worker_module do
-        Application.put_env(:amqp_channel_pool, :worker_module, original_worker_module)
-      else
-        Application.delete_env(:amqp_channel_pool, :worker_module)
-      end
-    end)
-
-    name = pool_name(:callback_raise)
-
-    {:ok, pid} =
-      AMQPChannelPool.start_link(name: name, connection: [label: :callback_raise], pool_size: 1)
-
-    on_exit(fn ->
-      stop_pool(pid, name)
-    end)
+    name = start_borrower_failure_pool(:callback_raise)
 
     assert {:ok, {:borrower_channel, initial_worker_id}} =
              AMQPChannelPool.checkout(name, fn channel -> channel end, timeout: 100)
@@ -317,25 +407,7 @@ defmodule AMQPChannelPoolTest do
   end
 
   test "checkout/3 preserves callback exit semantics" do
-    original_worker_module = Application.get_env(:amqp_channel_pool, :worker_module)
-    Application.put_env(:amqp_channel_pool, :worker_module, AMQPChannelPool.BorrowerFailureWorker)
-
-    on_exit(fn ->
-      if original_worker_module do
-        Application.put_env(:amqp_channel_pool, :worker_module, original_worker_module)
-      else
-        Application.delete_env(:amqp_channel_pool, :worker_module)
-      end
-    end)
-
-    name = pool_name(:callback_exit)
-
-    {:ok, pid} =
-      AMQPChannelPool.start_link(name: name, connection: [label: :callback_exit], pool_size: 1)
-
-    on_exit(fn ->
-      stop_pool(pid, name)
-    end)
+    name = start_borrower_failure_pool(:callback_exit)
 
     assert {:ok, {:borrower_channel, initial_worker_id}} =
              AMQPChannelPool.checkout(name, fn channel -> channel end, timeout: 100)
@@ -357,25 +429,7 @@ defmodule AMQPChannelPoolTest do
   end
 
   test "checkout/3 preserves callback throw semantics" do
-    original_worker_module = Application.get_env(:amqp_channel_pool, :worker_module)
-    Application.put_env(:amqp_channel_pool, :worker_module, AMQPChannelPool.BorrowerFailureWorker)
-
-    on_exit(fn ->
-      if original_worker_module do
-        Application.put_env(:amqp_channel_pool, :worker_module, original_worker_module)
-      else
-        Application.delete_env(:amqp_channel_pool, :worker_module)
-      end
-    end)
-
-    name = pool_name(:callback_throw)
-
-    {:ok, pid} =
-      AMQPChannelPool.start_link(name: name, connection: [label: :callback_throw], pool_size: 1)
-
-    on_exit(fn ->
-      stop_pool(pid, name)
-    end)
+    name = start_borrower_failure_pool(:callback_throw)
 
     assert {:ok, {:borrower_channel, initial_worker_id}} =
              AMQPChannelPool.checkout(name, fn channel -> channel end, timeout: 100)
@@ -394,6 +448,15 @@ defmodule AMQPChannelPoolTest do
              AMQPChannelPool.checkout(name, fn channel -> channel end, timeout: 100)
 
     assert replacement_worker_id != initial_worker_id
+  end
+
+  defp start_borrower_failure_pool(label) do
+    Application.put_env(:amqp_channel_pool, :worker_module, AMQPChannelPool.BorrowerFailureWorker)
+
+    name = pool_name(label)
+    {:ok, pid} = AMQPChannelPool.start_link(name: name, connection: [label: label], pool_size: 1)
+    on_exit(fn -> stop_pool(pid, name) end)
+    name
   end
 
   defp pool_name(label) do
