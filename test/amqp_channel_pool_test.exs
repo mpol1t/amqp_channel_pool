@@ -100,6 +100,10 @@ end
 defmodule AMQPChannelPoolTest do
   use ExUnit.Case, async: false
 
+  alias AMQPChannelPool.IntegrationHelpers
+
+  @checkout_exception [:amqp_channel_pool, :checkout, :exception]
+
   setup do
     original_worker_module = Application.get_env(:amqp_channel_pool, :worker_module)
     Application.put_env(:amqp_channel_pool, :worker_module, AMQPChannelPool.TestWorker)
@@ -409,6 +413,7 @@ defmodule AMQPChannelPoolTest do
   end
 
   test "checkout/3 preserves callback exit semantics" do
+    capture_checkout_exceptions()
     name = start_borrower_failure_pool(:callback_exit)
 
     assert {:ok, {:borrower_channel, initial_worker_id}} =
@@ -428,9 +433,11 @@ defmodule AMQPChannelPoolTest do
              AMQPChannelPool.checkout(name, fn channel -> channel end, timeout: 100)
 
     assert replacement_worker_id != initial_worker_id
+    assert_callback_exception(name, :exit, :callback_exit)
   end
 
   test "checkout/3 preserves callback throw semantics" do
+    capture_checkout_exceptions()
     name = start_borrower_failure_pool(:callback_throw)
 
     assert {:ok, {:borrower_channel, initial_worker_id}} =
@@ -450,6 +457,19 @@ defmodule AMQPChannelPoolTest do
              AMQPChannelPool.checkout(name, fn channel -> channel end, timeout: 100)
 
     assert replacement_worker_id != initial_worker_id
+    assert_callback_exception(name, :throw, :callback_throw)
+  end
+
+  defp capture_checkout_exceptions do
+    handler_id = IntegrationHelpers.attach_telemetry!([@checkout_exception], self())
+    on_exit(fn -> IntegrationHelpers.detach_telemetry(handler_id) end)
+  end
+
+  defp assert_callback_exception(name, kind, reason) do
+    assert_received {:telemetry_event, @checkout_exception, _,
+                     %{pool: ^name, result: :callback_exception, kind: ^kind, reason: ^reason}}
+
+    refute_received {:telemetry_event, @checkout_exception, _, %{pool: ^name}}
   end
 
   defp start_borrower_failure_pool(label) do
